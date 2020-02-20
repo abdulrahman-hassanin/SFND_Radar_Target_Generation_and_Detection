@@ -83,14 +83,14 @@ RDM(RDM~=0 & RDM~=1) = 0;
 ```
 
 # output
-![Range First FFT](./media/Range from First FFTt.jpg)
+![Range First FFT](./media/Range from First FFTt)
 
 *Range*
 
-![Range](./media/Range and Speed from FFT2.jpg)
+![Range](./media/Range and Speed from FFT2)
 
 *Range from FFT2*
 
-![CACFAR Surface Plot](./media/CA-CFAR Filtered RDM.jpg)
+![CACFAR Surface Plot](./media/CA-CFAR Filtered RDM)
 
 *CACFAR Surface Plot*

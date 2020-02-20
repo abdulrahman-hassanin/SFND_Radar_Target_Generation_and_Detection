@@ -166,7 +166,7 @@ Gd = 4;
 
 % *%TODO* :
 % offset the threshold by SNR value in dB
-offset = 0.0;
+offset = 0.2;
 
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
@@ -223,23 +223,6 @@ end
 %matrix. Hence,few cells will not be thresholded. To keep the map size same
 % set those values to 0. 
 
-%for i = 1:Tr+Gr     % To avoid edges
-%    for j = 1:Td+Gd
-%        RDM(i,j)=0;
-
-% for i = 1: (Nr/2)-(Tr+Gr)        % To avoid edges
-%     for j = 1: Nd-Td-Gd
-%         if(j<(Td+Gd))
-%             RDM(i,j)=0;
-%         elseif(j > (Nr/2)-(Tr+Gr))
-%             RDM(i,j)=0;
-%         elseif(i< (Tr+Gr))
-%             RDM(i,j)=0;
-%         elseif(i< (Nd-Td-Gd))
-%             RDM(i,j)=0;
-%         end
-%     end
-% end
 RDM(RDM~=0 & RDM~=1) = 0;
 
 % *%TODO* :

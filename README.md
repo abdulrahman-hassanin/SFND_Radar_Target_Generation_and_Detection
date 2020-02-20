@@ -32,7 +32,7 @@ Gr = 4;
 Gd = 4;
 
 % offset the threshold by SNR value in dB
-offset = 0.0;
+offset = 0.2;
 
 gridSize = (2*Tr + 2*Gr +1)*(2*Td + 2*Gd +1);
 trainCellSize = gridSize - (2*Gr + 1)*(2*Gd+1);
@@ -69,3 +69,28 @@ for i = Tr+Gr+1: (Nr/2)-(Tr+Gr)        % To avoid edges
     end    
 end
 ```
+# Selection of Training, Guard cells and offset.
+- Number of Training cells in range dimension (Tr) = 10
+- Number of Training cells in doppler dimension (Td) = 8
+- Number of Guard cells in range dimension (Gr) = 4
+- Number of Guard cells in doppler dimension (Gd) = 4
+- Offset = 0.2
+
+# teps taken to suppress the non-thresholded cells at the edges.
+Any cell value that is neither 1 nor a 0, assign it a zero.
+```matlab script
+RDM(RDM~=0 & RDM~=1) = 0;
+```
+
+# output
+![Range First FFT](./media/Range from First FFTt.jpg)
+
+*Range*
+
+![Range](./media/Range and Speed from FFT2.jpg)
+
+*Range from FFT2*
+
+![CACFAR Surface Plot](./media/CA-CFAR Filtered RDM.jpg)
+
+*CACFAR Surface Plot*

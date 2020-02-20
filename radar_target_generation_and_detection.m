@@ -3,7 +3,7 @@ clc;
 
 %% Radar Specifications 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-fc = 77e9;  % Frequency of operation = 77GHz
+%fc = 77e9;  % Frequency of operation = 77GHz
 maxRange = 200; % Max Range = 200m
 rangeResolution = 1;    % Range Resolution = 1 m
 maxVelocity = 100;  % Max Velocity = 100 m/s
@@ -14,8 +14,8 @@ c = 3e8;    %speed of light = 3e8
 % *%TODO* :
 % define the target's initial position and velocity. Note : Velocity
 % remains contant
-x0 = 115;   % Initial Position
-v0 = -20;   % Intial Velocity
+R = 110;   % Initial Position
+v = -20;   % Intial Velocity
 
 %% FMCW Waveform Generation
 
@@ -24,9 +24,10 @@ v0 = -20;   % Intial Velocity
 % Calculate the Bandwidth (B), Chirp Time (Tchirp) and Slope (slope) of the FMCW
 % chirp using the requirements above.
 Bsweep = c / (2*rangeResolution);
-Tchrip = 5.5 * 2 * maxRange / c;
-slope = Bsweep / Tchrip;
-display(slope);
+Tchirp = 5.5 * 2 * maxRange / c;
+slope = Bsweep / Tchirp;
+% display(slope);
+
 %Operating carrier frequency of Radar 
 fc= 77e9;             %carrier freq
 
@@ -61,18 +62,20 @@ for i=1:length(t)
     
     % *%TODO* :
     %For each time stamp update the Range of the Target for constant velocity. 
+    r_t(i) = (R + t(i)*v);  % range_covered
+    td(i) = (2*r_t(i)) / c; % delay_time
     
     % *%TODO* :
     %For each time sample we need update the transmitted and
     %received signal. 
-    %Tx(i) = 
-    %Rx (i)  =
+    Tx(i)   = cos(2 * pi * (fc *  t(i)        + slope *  t(i)^2 / 2 ));
+    Rx (i)  = cos(2 * pi * (fc * (t(i)-td(i)) + slope * (t(i)-td(i))^2 / 2 ));
     
     % *%TODO* :
     %Now by mixing the Transmit and Receive generate the beat signal
     %This is done by element wise matrix multiplication of Transmit and
     %Receiver Signal
-    %Mix(i) = 
+    Mix(i) = Tx(i) .* Rx(i);
     
 end
 
@@ -82,28 +85,34 @@ end
  % *%TODO* :
 %reshape the vector into Nr*Nd array. Nr and Nd here would also define the size of
 %Range and Doppler FFT respectively.
+beat = reshape(Mix, [Nr, Nd]);
 
  % *%TODO* :
 %run the FFT on the beat signal along the range bins dimension (Nr) and
 %normalize.
+fft1_signal = fft(beat);
+fft1_signal = fft1_signal./Nr;
 
  % *%TODO* :
 % Take the absolute value of FFT output
+fft1_signal = abs(fft1_signal);
 
  % *%TODO* :
 % Output of FFT is double sided signal, but we are interested in only one side of the spectrum.
 % Hence we throw out half of the samples.
-
+one_side_fft1 = fft1_signal(1 : Nr/2);
 
 %plotting the range
 figure ('Name','Range from First FFT')
-subplot(2,1,1)
+%subplot(2,1,1)
 
- % *%TODO* :
- % plot FFT output 
-
- 
-axis ([0 200 0 1]);
+% *%TODO* :
+% plot FFT output 
+plot(one_side_fft1) 
+title('Range from first FFT')
+ylabel('Normalized Amplitude');
+xlabel('Range'); 
+axis ([0 200 0 0.5]);
 
 
 
@@ -134,7 +143,11 @@ RDM = 10*log10(RDM) ;
 %dimensions
 doppler_axis = linspace(-100,100,Nd);
 range_axis = linspace(-200,200,Nr/2)*((Nr/2)/400);
-figure,surf(doppler_axis,range_axis,RDM);
+figure ('Name','Range and Speed From FFT2')
+surf(doppler_axis,range_axis,RDM);
+xlabel('Speed');
+ylabel('Range');
+zlabel('Amplitude');
 
 %% CFAR implementation
 
@@ -142,18 +155,24 @@ figure,surf(doppler_axis,range_axis,RDM);
 
 % *%TODO* :
 %Select the number of Training Cells in both the dimensions.
+Tr = 10;    % range Dimension
+Td = 8;     % Doppler Dimension
 
 % *%TODO* :
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
+Gr = 4;
+Gd = 4;
 
 % *%TODO* :
 % offset the threshold by SNR value in dB
+offset = 0.0;
 
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
-noise_level = zeros(1,1);
-
+%noise_level = zeros(1,1);
+gridSize = (2*Tr + 2*Gr +1)*(2*Td + 2*Gd +1);
+trainCellSize = gridSize - (2*Gr + 1)*(2*Gd+1);
 
 % *%TODO* :
 %design a loop such that it slides the CUT across range doppler map by
@@ -169,8 +188,32 @@ noise_level = zeros(1,1);
 
    % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
    % CFAR
+RDM = RDM/max(max(RDM));
 
-
+for i = Tr+Gr+1: (Nr/2)-(Tr+Gr)        % To avoid edges
+    for j = Td+Gd+1 : Nd-Td-Gd
+        noise_level = zeros(1,1);
+        % sum noise around CUT
+        for p = i-(Tr+Gr): i+Tr+Gr
+            for q = j-(Td+Gd): j+Td+Gd
+                if(abs(i-p) > Gr || abs(j-q))
+                    noise_level = noise_level + db2pow(RDM(p,q));
+                end
+            end
+        end
+        
+        % Calculate threshold
+        noise_level_avr = noise_level / trainCellSize;
+        threshold = pow2db(noise_level_avr) + offset;
+        
+        CUT = RDM(i,j);
+        if (CUT < threshold)
+            RDM(i,j)=0;
+        else
+            RDM(i,j)=1;
+        end    
+    end    
+end
 
 
 
@@ -179,21 +222,35 @@ noise_level = zeros(1,1);
 %than the Range Doppler Map as the CUT cannot be located at the edges of
 %matrix. Hence,few cells will not be thresholded. To keep the map size same
 % set those values to 0. 
- 
 
+%for i = 1:Tr+Gr     % To avoid edges
+%    for j = 1:Td+Gd
+%        RDM(i,j)=0;
 
-
-
-
-
-
+% for i = 1: (Nr/2)-(Tr+Gr)        % To avoid edges
+%     for j = 1: Nd-Td-Gd
+%         if(j<(Td+Gd))
+%             RDM(i,j)=0;
+%         elseif(j > (Nr/2)-(Tr+Gr))
+%             RDM(i,j)=0;
+%         elseif(i< (Tr+Gr))
+%             RDM(i,j)=0;
+%         elseif(i< (Nd-Td-Gd))
+%             RDM(i,j)=0;
+%         end
+%     end
+% end
+RDM(RDM~=0 & RDM~=1) = 0;
 
 % *%TODO* :
 %display the CFAR output using the Surf function like we did for Range
 %Doppler Response output.
-figure,surf(doppler_axis,range_axis,'replace this with output');
+figure('name','CA-CFAR Filtered RDM');
+surf(doppler_axis,range_axis,RDM);
 colorbar;
-
+xlabel('Speed');
+ylabel('Range');
+zlabel('Amplitude');
 
  
  

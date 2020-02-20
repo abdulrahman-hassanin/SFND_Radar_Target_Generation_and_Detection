@@ -83,7 +83,7 @@ RDM(RDM~=0 & RDM~=1) = 0;
 ```
 
 # output
-![Range First FFT](./media/Range_from_First_FFT.jpg)
+(./media/Range_from_First_FFT.jpg)
 
 *Range*
 
